@@ -1,9 +1,9 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import PropTypes from "prop-types";
-const NoteForm = ({ onSave, onClose }) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+const NoteForm = ({note, onSave, onClose }) => {
+  const [title, setTitle] = useState(() => note?.title || "");
+  const [content, setContent] = useState(() => note?.content || "");
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave({ title, content });
@@ -66,6 +66,7 @@ const NoteForm = ({ onSave, onClose }) => {
 };
 
 NoteForm.propTypes = {
+  note: PropTypes.object,
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
 };

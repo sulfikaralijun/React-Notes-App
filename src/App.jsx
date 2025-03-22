@@ -6,21 +6,54 @@ import NoteItem from "./components/NoteItem";
 import { Fragment } from "react";
 
 const App = () => {
-  const [notes, setNotes] = useState([]);
+  const [notes, setNotes] = useState(
+    () =>
+      JSON.parse(localStorage.getItem("notes"), (key, val) => {
+        if (
+          typeof val === "string" &&
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(val)
+        ) {
+          return new Date(val);
+        }
+        return val;
+      }) || []
+  );
+  const [noteEdit, setNoteEdit] = useState(undefined);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
-  const handleNoteSave = (note) => {
-    if (!note) return;
-    const newNote = {
-      id: new Date().getTime().toString(),
-      ...note,
-    };
-    setNotes((prev) => [...prev, newNote]);
+  useEffect(() => {
+    localStorage.setItem("notes", JSON.stringify(notes));
+  }, [notes]);
+
+  const handleNoteSave = (noteData) => {
+    if (!noteData) return;
+    if (noteEdit) {
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === noteEdit.id
+            ? { ...note, ...noteData, updatedAt: new Date() }
+            : note
+        )
+      );
+    } else {
+      const newNote = {
+        id: new Date().getTime().toString(),
+        ...noteData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setNotes((prev) => [...prev, newNote]);
+    }
   };
 
-  useEffect(() => {
-    console.log(notes);
-  }, [notes]);
+  const handleDelete = (id) => {
+    setNotes((prev) => prev.filter((note) => note.id !== id));
+  };
+
+  const handleEdit = (note) => {
+    setNoteEdit(note);
+    setIsEditorOpen(true);
+  };
 
   return (
     <div className="min-h-screen relative bg-gray-100">
@@ -39,22 +72,34 @@ const App = () => {
         </div>
       </header>
       <main className="">
-        {notes.length !== 0 && (
+        {notes.length === 0 ? (
+          <div className="flex flex-col gap-4 items-center mt-30">
+            <Notebook size={48} className="text-gray-400" />
+            <h3 className="font-semibold">No notes yet</h3>
+            <p className="text-sm text-gray-500">
+              Create your first note by clicking the "New Note" button.
+            </p>
+          </div>
+        ) : (
           <div className="grid grid-cols-3 gap-6 p-6">
-            {notes.map(note => (
-              <Fragment key={note.id}>
-                <NoteItem note={note}/>
-              </Fragment>
+            {notes.map((note) => (
+              <NoteItem
+                key={note.id}
+                note={note}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+              />
             ))}
           </div>
         )}
       </main>
       {isEditorOpen && (
         <NoteForm
+          note={noteEdit}
           onSave={handleNoteSave}
           onClose={() => {
             setIsEditorOpen(false);
-
+            setNoteEdit(undefined);
           }}
         />
       )}
